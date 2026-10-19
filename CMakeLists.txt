@@ -7,3 +7,7 @@ add_executable(curvy curvy.cpp)
 
 find_package(SDL2 REQUIRED)
 target_link_libraries(curvy PRIVATE SDL2::SDL2)
+
+find_package(glm REQUIRED)
+target_link_libraries(curvy PRIVATE glm::glm)
+target_compile_definitions(curvy PRIVATE GLM_FORCE_SIZE_T_LENGTH)
