@@ -16,7 +16,7 @@
 
 int main()
 {
-    // Initialize SDL and create a window with renderer.
+    // Initialize SDL and create a window.
     if(SDL_Init(SDL_INIT_VIDEO) < 0)
         throw std::runtime_error{std::string{"Unable to initialize SDL2:\n"} + SDL_GetError()};
     SDL_Window * window{SDL_CreateWindow
@@ -28,10 +28,13 @@ int main()
     )};
     if(window == nullptr)
         throw std::runtime_error{std::string{"Unable to create window:\n"} + SDL_GetError()};
+
+    // Create a renderer and renderable context.
     SDL_Renderer * renderer{SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC)};
     if(renderer == nullptr)
         throw std::runtime_error{std::string{"Unable to create renderer"} + SDL_GetError()};
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
+    renderable_context const render_ctx{renderer, 720};
 
     // Create points and selection cursor.
     std::vector<point> points
@@ -41,12 +44,13 @@ int main()
         glm::vec2{1100.f, 110.f}
     };
     std::vector<point>::iterator selected_point{points.begin()};
+    selected_point->set_is_selected(true);
 
     // Animation start timestamp. If value is present, shows when the current animation was started by user. Otherwise
     // shows no animation currently running.
     std::optional<std::chrono::time_point<std::chrono::steady_clock>> animation_started_at;
 
-    // Output control instructions.
+    // Output control instructions to terminal.
     std::cout << "Tab to cycle through points; Shift+Tab to cycle in reverse.\n"
                  "Arrows to move selected point; Shift+Arrows to move fast; Ctrl+Arrows to move slow.\n"
                  "Space to show point ride animation." << std::endl;
@@ -81,15 +85,19 @@ int main()
                 {
                     if(event.key.keysym.mod == KMOD_LSHIFT or event.key.keysym.mod == KMOD_RSHIFT)
                     {
+                        selected_point->set_is_selected(false);
                         --selected_point;
                         if(selected_point < points.begin())
                             selected_point = std::prev(points.end());
+                        selected_point->set_is_selected(true);
                     }
                     else
                     {
+                        selected_point->set_is_selected(false);
                         ++selected_point;
                         if(selected_point >= points.end())
                             selected_point = points.begin();
+                        selected_point->set_is_selected(true);
                     }
                 }
 
@@ -120,9 +128,9 @@ int main()
         // Render segments and points with white color.
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 0);
         for(auto a{points.begin()}; std::next(a) < points.end(); ++a)
-            draw_line(renderer, 720, *a, *std::next(a));
+            render_line(render_ctx, *a, *std::next(a));
         for(point & p : points)
-            p.draw(renderer, 720, &(*selected_point) == &p);
+            p.render(render_ctx);
 
         // Render animation if it was started.
         if(animation_started_at.has_value())
@@ -140,7 +148,9 @@ int main()
             else
             {
                 SDL_SetRenderDrawColor(renderer, 255, 0, 255, 0);
-                lerp(points[first], points[second], std::fmod(t, 1)).draw(renderer, 720, true);
+                point p{lerp(points[first], points[second], std::fmod(t, 1))};
+                p.set_is_selected(true);
+                p.render(render_ctx);
             }
         }
 
