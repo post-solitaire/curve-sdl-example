@@ -11,6 +11,7 @@
 #include <SDL2/SDL.h>
 
 #include "point.hpp"
+#include "events.hpp"
 
 
 
@@ -57,18 +58,16 @@ int main()
 
     // Consume events and render as long as window is open.
     bool should_close{false};
+    quit_event const q{ [&](){ should_close = true; } };
     SDL_ShowWindow(window);
     while(not should_close)
     {
         SDL_Event event;
         while(SDL_PollEvent(&event) > 0)
         {
-            if(event.type == SDL_QUIT)
-            {
-                should_close = true;
+            if(q.handle(event) == event::consume_mode::stop)
                 break;
-            }
-            else if((event.type == SDL_KEYDOWN) and (event.key.repeat == 0))
+            if((event.type == SDL_KEYDOWN) and (event.key.repeat == 0))
             {
                 auto mult = [](SDL_Keysym k) -> float
                 {
