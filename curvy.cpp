@@ -11,7 +11,7 @@
 #include <SDL2/SDL.h>
 
 #include "point.hpp"
-#include "events.hpp"
+#include "sdl_events.hpp"
 
 
 
@@ -37,7 +37,9 @@ int main()
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_NONE);
     renderable_context const render_ctx{renderer, 720};
 
-    // Create points and selection cursor.
+
+
+    // Create points and selection cursor. Create key action to cycle through points.
     std::vector<point> points
     {
         glm::vec2{170.f, 260.f},
@@ -46,10 +48,76 @@ int main()
     };
     std::vector<point>::iterator selected_point{points.begin()};
     selected_point->set_is_selected(true);
+    key_event const cycle
+    {
+        SDL_SCANCODE_TAB,
+        [&](SDL_Keysym k)
+    {
+            selected_point->set_is_selected(false);
+            if(k.mod == KMOD_LSHIFT or k.mod == KMOD_RSHIFT)
+            {
+                --selected_point;
+                if(selected_point < points.begin())
+                    selected_point = std::prev(points.end());
+            }
+            else
+            {
+                ++selected_point;
+                if(selected_point >= points.end())
+                    selected_point = points.begin();
+            }
+            selected_point->set_is_selected(true);
+        }
+    };
 
-    // Animation start timestamp. If value is present, shows when the current animation was started by user. Otherwise
-    // shows no animation currently running.
+    // Create animation start timestamp and key action to start animation. If value is present, shows when the current
+    // animation was started by user. Otherwise shows no animation currently running.
     std::optional<std::chrono::time_point<std::chrono::steady_clock>> animation_started_at;
+    key_event const start_animation
+    {
+        SDL_SCANCODE_SPACE,
+        [&](SDL_Keysym k){ animation_started_at = std::chrono::steady_clock::now(); }
+    };
+
+    // Create quit event with outside boolean flag.
+    bool should_close{false};
+    quit_event const quit{[&](){ should_close = true; }};
+
+    // Create point movement actions.
+    auto mult = [](SDL_Keysym k) -> float
+    {
+        if(k.mod == KMOD_LCTRL or k.mod == KMOD_RCTRL)
+            return 1.f;
+        if(k.mod == KMOD_LSHIFT or k.mod == KMOD_RSHIFT)
+            return 100.f;
+        return 10.f;
+    };
+    constexpr glm::vec2 x_axis{1.f, 0.f}, y_axis{0.f, 1.f};
+    key_event const move_left
+    {
+        SDL_SCANCODE_LEFT,
+        [&](SDL_Keysym k){ selected_point->increase_position(-x_axis * mult(k)); }
+    };
+    key_event const move_right
+    {
+        SDL_SCANCODE_RIGHT,
+        [&](SDL_Keysym k){ selected_point->increase_position(x_axis * mult(k)); }
+    };
+    key_event const move_down
+    {
+        SDL_SCANCODE_DOWN,
+        [&](SDL_Keysym k){ selected_point->increase_position(-y_axis * mult(k)); }
+    };
+    key_event const move_up
+    {
+        SDL_SCANCODE_UP,
+        [&](SDL_Keysym k){ selected_point->increase_position(y_axis * mult(k)); }
+    };
+
+    // Put all actions into one place to iterate on.
+    std::vector<event const *> events{&quit, &cycle, &start_animation, &move_left, &move_right, &move_down, &move_up};
+
+
 
     // Output control instructions to terminal.
     std::cout << "Tab to cycle through points; Shift+Tab to cycle in reverse.\n"
@@ -57,63 +125,15 @@ int main()
                  "Space to show point ride animation." << std::endl;
 
     // Consume events and render as long as window is open.
-    bool should_close{false};
-    quit_event const q{ [&](){ should_close = true; } };
     SDL_ShowWindow(window);
     while(not should_close)
     {
         SDL_Event event;
         while(SDL_PollEvent(&event) > 0)
         {
-            if(q.handle(event) == event::consume_mode::stop)
-                break;
-            if((event.type == SDL_KEYDOWN) and (event.key.repeat == 0))
-            {
-                auto mult = [](SDL_Keysym k) -> float
-                {
-                    if(k.mod == KMOD_LCTRL or k.mod == KMOD_RCTRL)
-                        return 1.f;
-                    if(k.mod == KMOD_LSHIFT or k.mod == KMOD_RSHIFT)
-                        return 100.f;
-                    return 10.f;
-                };
-                constexpr glm::vec2 x_axis{1.f, 0.f}, y_axis{0.f, 1.f};
-
-                // Cycle cursor on tab key presses.
-                if(event.key.keysym.scancode == SDL_SCANCODE_TAB)
-                {
-                    if(event.key.keysym.mod == KMOD_LSHIFT or event.key.keysym.mod == KMOD_RSHIFT)
-                    {
-                        selected_point->set_is_selected(false);
-                        --selected_point;
-                        if(selected_point < points.begin())
-                            selected_point = std::prev(points.end());
-                        selected_point->set_is_selected(true);
-                    }
-                    else
-                    {
-                        selected_point->set_is_selected(false);
-                        ++selected_point;
-                        if(selected_point >= points.end())
-                            selected_point = points.begin();
-                        selected_point->set_is_selected(true);
-                    }
-                }
-
-                // Move selected point on arrow key presses.
-                else if(event.key.keysym.scancode == SDL_SCANCODE_LEFT)
-                    selected_point->increase_position(-x_axis * mult(event.key.keysym));
-                else if(event.key.keysym.scancode == SDL_SCANCODE_RIGHT)
-                    selected_point->increase_position(x_axis * mult(event.key.keysym));
-                else if(event.key.keysym.scancode == SDL_SCANCODE_DOWN)
-                    selected_point->increase_position(-y_axis * mult(event.key.keysym));
-                else if(event.key.keysym.scancode == SDL_SCANCODE_UP)
-                    selected_point->increase_position(y_axis * mult(event.key.keysym));
-
-                // Start animation on space key presses.
-                else if(event.key.keysym.scancode == SDL_SCANCODE_SPACE)
-                    animation_started_at = std::chrono::steady_clock::now();
-            }
+            for(auto const e : events)
+                if(e->handle(event) == event::consume_mode::stop)
+                    break;
         }
 
         // Exit without rendering if window should close.

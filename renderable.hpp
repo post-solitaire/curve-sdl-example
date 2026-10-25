@@ -1,3 +1,5 @@
+#pragma once
+
 #include <SDL2/SDL.h>
 
 
@@ -18,6 +20,7 @@ struct renderable_context
     }
 
 };
+
 
 
 class renderable

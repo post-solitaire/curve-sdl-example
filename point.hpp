@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdlib>
 
 #include <SDL2/SDL.h>
