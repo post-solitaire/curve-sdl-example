@@ -1,14 +1,12 @@
 #pragma once
 
-#include <SDL_render.h>
-#include <cstdint>
+#include <array>
+#include <cstddef>
 #include <stdexcept>
-#include <cmath>
 
 #include <SDL2/SDL.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/compatibility.hpp>
-#include <glm/gtx/rotate_vector.hpp>
 
 
 
@@ -70,13 +68,52 @@ struct renderable_context
     // Draw circle from `center` with `radius` radius by drawing `detail` connected lines.
     void draw_circle(glm::vec2 center, float radius, uint8_t detail) const
     {
+        if(detail < 3)
+            throw std::runtime_error{"N-gon cannot have less than 3 sides."};
         for(uint8_t t{0}; t < detail; ++t)
         {
-            float const p1{glm::two_pi<float>() * static_cast<float>(t) / static_cast<float>(detail)},
-                        p2{glm::two_pi<float>() * static_cast<float>(t + 1) / static_cast<float>(detail)};
-            constexpr glm::vec2 v_start{glm::vec2{1.f, 0.f}};
-            draw_line(center + radius * glm::rotate(v_start, p1), center + radius * glm::rotate(v_start, p2));
+            float const a1{glm::two_pi<float>() * static_cast<float>(t) / static_cast<float>(detail)},
+                        a2{glm::two_pi<float>() * static_cast<float>(t + 1) / static_cast<float>(detail)};
+            glm::vec2 const v1{std::cos(a1), std::sin(a1)}, v2{std::cos(a2), std::sin(a2)};
+            draw_line(center + radius * v1, center + radius * v2);
         }
+    }
+    // Draw filled circle from `center` with `radius` radius by drawing `detail - 2` polygons.
+    void fill_circle(glm::vec2 center, float radius, uint8_t detail) const
+    {
+        // Maximum number is maximum of `uint8_t`. Minimum is 3 sides.
+        constexpr size_t max_sides{std::numeric_limits<uint8_t>::max()};
+        if(detail < 3)
+            throw std::runtime_error{"N-gon cannot have less than 3 sides."};
+
+        // Make static indicies buffer filled with fan indicies `{0,1,2, 0,2,3, 0,3,4, ...}` for all possible `detail`
+        // values at startup.
+        static auto const indicies_buffer = []()
+        {
+            std::array<int, 3 * (max_sides - 2)> buffer{};
+            for(int triplet{0}; triplet < (max_sides - 2); ++triplet)
+            {
+                buffer[3 * triplet] = 0;
+                buffer[3 * triplet + 1] = triplet + 1;
+                buffer[3 * triplet + 2] = triplet + 2;
+            }
+            return buffer;
+        }();
+
+        // Get color from global state and create vertices buffer on stack (about 5.1 KiB).
+        SDL_Color color;
+        SDL_GetRenderDrawColor(renderer, &color.r, &color.g, &color.b, &color.a);
+        SDL_Vertex vertices_buffer[max_sides];
+
+        // Fill the vertex buffer and draw from buffers.
+        for(uint8_t t{0}; t < detail; ++t)
+        {
+            float const angle{glm::two_pi<float>() * static_cast<float>(t) / static_cast<float>(detail)};
+            glm::vec2 const pos{center + radius * glm::vec2{std::cos(angle), std::sin(angle)}};
+            vertices_buffer[t] = SDL_Vertex{.position{to_screen(SDL_FPoint{pos.x, pos.y})}, .color{color}, .tex_coord{0.f, 0.f}};
+        }
+        if(SDL_RenderGeometry(renderer, nullptr, vertices_buffer, detail, indicies_buffer.data(), 3 * (detail - 2)) < 0)
+            throw std::runtime_error{std::string{"Unable to draw polygons:\n"} + SDL_GetError()};
     }
 };
 

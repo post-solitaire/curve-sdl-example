@@ -16,13 +16,12 @@ public:
             : position{position}, is_selected{is_selected} {};
     ~point() = default;
 
-    // Draw point (assuming bottom-left origin), optionally draw selection box.
+    // Draw point, optionally draw selection.
     void render(renderable_context const & render_ctx) const override
     {
-        SDL_FRect const point{render_ctx.to_screen(SDL_FRect{position.x - point_half_size, position.y - point_half_size, point_size, point_size})};
-        SDL_RenderFillRectF(render_ctx.renderer, &point);
+        render_ctx.fill_circle(position, point_size / 2.f, point_detail);
         if(is_selected)
-            render_ctx.draw_circle(position, selection_size / 2.f, 12);
+            render_ctx.draw_circle(position, selection_size / 2.f, selection_detail);
     }
 
     // Position getters and setters.
@@ -43,9 +42,9 @@ private:
     glm::vec2 position;
     bool is_selected;
 
-    static constexpr float point_size{5.f}, selection_size{20.f}, point_half_size{point_size / 2.f};
+    static constexpr float point_size{8.f}, selection_size{30.f};
+    static constexpr uint8_t point_detail{8}, selection_detail{12};
 };
-
 
 
 
