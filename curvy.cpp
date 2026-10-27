@@ -52,7 +52,7 @@ int main()
     {
         SDL_SCANCODE_TAB,
         [&](SDL_Keysym k)
-    {
+        {
             selected_point->set_is_selected(false);
             if(k.mod == KMOD_LSHIFT or k.mod == KMOD_RSHIFT)
             {
@@ -141,11 +141,11 @@ int main()
             break;
 
         // Clear canvas with black background.
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+        render_ctx.set_draw_color(glm::vec4{.1f, .1f, .1f, 0.f});
         SDL_RenderClear(renderer);
 
         // Render segments and points with white color.
-        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 0);
+        render_ctx.set_draw_color(glm::vec4{1.f, 1.f, 1.f, 0.f});
         for(auto a{points.begin()}; std::next(a) < points.end(); ++a)
             render_line(render_ctx, *a, *std::next(a));
         for(point & p : points)
@@ -166,7 +166,7 @@ int main()
                 animation_started_at.reset();
             else
             {
-                SDL_SetRenderDrawColor(renderer, 255, 0, 255, 0);
+                render_ctx.set_draw_color(glm::vec4{1.f, 0.f, 1.f, 0.f});
                 point p{lerp(points[first], points[second], std::fmod(t, 1))};
                 p.set_is_selected(true);
                 p.render(render_ctx);

@@ -22,10 +22,7 @@ public:
         SDL_FRect const point{render_ctx.to_screen(SDL_FRect{position.x - point_half_size, position.y - point_half_size, point_size, point_size})};
         SDL_RenderFillRectF(render_ctx.renderer, &point);
         if(is_selected)
-        {
-            SDL_FRect const selection{render_ctx.to_screen(SDL_FRect{position.x - selection_half_size, position.y - selection_half_size, selection_size, selection_size})};
-            SDL_RenderDrawRectF(render_ctx.renderer, &selection);
-        }
+            render_ctx.draw_circle(position, selection_size / 2.f, 12);
     }
 
     // Position getters and setters.
@@ -46,22 +43,19 @@ private:
     glm::vec2 position;
     bool is_selected;
 
-    static constexpr float point_size{5.f}, selection_size{20.f}, point_half_size{point_size / 2.f},
-                           selection_half_size{selection_size / 2.f};
+    static constexpr float point_size{5.f}, selection_size{20.f}, point_half_size{point_size / 2.f};
 };
 
 
 
 
 // Draw segment between two points.
-void render_line(renderable_context const & render_ctx, point const & a, point const & b)
+inline void render_line(renderable_context const & render_ctx, point const & a, point const & b)
 {
-    SDL_FPoint const start{render_ctx.to_screen(static_cast<SDL_FPoint>(a))},
-                     end{render_ctx.to_screen(static_cast<SDL_FPoint>(b))};
-    SDL_RenderDrawLineF(render_ctx.renderer, start.x, start.y, end.x, end.y);
+    render_ctx.draw_ruler_line(a.get_position(), b.get_position());
 }
 
-point lerp(point const & a, point const & b, float t)
+inline point lerp(point const & a, point const & b, float t)
 {
     return point{glm::mix(a.get_position(), b.get_position(), t)};
 }
