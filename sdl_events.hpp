@@ -8,13 +8,13 @@
 
 
 
-class quit_event final : public event
+class quit_handler final : public handler
 {
 public:
     using action_type = std::function<void()>;
 
-    quit_event(action_type const & action = {}) : action{action} {}
-    virtual ~quit_event() = default;
+    quit_handler(action_type const & act = {}) : action{act} {}
+    virtual ~quit_handler() = default;
 
     consume_mode handle(SDL_Event const & event) const override
     {
@@ -33,15 +33,15 @@ private:
 
 
 
-class key_event final : public event
+class key_handler final : public handler
 {
 public:
     using action_type = std::function<void(SDL_Keysym)>;
     using act_cref = action_type const &;
 
-    key_event(SDL_Scancode k, act_cref press = {}, act_cref release = {}, act_cref repeat = {})
+    key_handler(SDL_Scancode k, act_cref press = {}, act_cref release = {}, act_cref repeat = {})
             : key{k}, press_action{press}, release_action{release}, repeat_action{repeat} {}
-    virtual ~key_event() = default;
+    virtual ~key_handler() = default;
 
     consume_mode handle(SDL_Event const & event) const override
     {

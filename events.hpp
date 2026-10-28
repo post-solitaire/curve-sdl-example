@@ -4,7 +4,7 @@
 
 
 
-class event
+class handler
 {
 public:
     enum class consume_mode
@@ -22,6 +22,6 @@ public:
         stop,
     };
 
-    virtual ~event() = default;
+    virtual ~handler() = default;
     virtual consume_mode handle(SDL_Event const &) const = 0;
 };

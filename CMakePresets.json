@@ -1,0 +1,12 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "strict",
+            "binaryDir": "${sourceDir}/.build",
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": "-Wall -Wextra -pedantic -Wpedantic -Wshadow -Wvla -Wstrict-aliasing -fstrict-aliasing -Wsign-conversion -Wdouble-promotion -Wfloat-equal -Wfloat-conversion"
+            }
+        }
+    ]
+}

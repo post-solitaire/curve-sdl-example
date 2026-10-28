@@ -48,7 +48,7 @@ int main()
     };
     std::vector<point>::iterator selected_point{points.begin()};
     selected_point->set_is_selected(true);
-    key_event const cycle
+    key_handler const cycle
     {
         SDL_SCANCODE_TAB,
         [&](SDL_Keysym k)
@@ -73,15 +73,15 @@ int main()
     // Create animation start timestamp and key action to start animation. If value is present, shows when the current
     // animation was started by user. Otherwise shows no animation currently running.
     std::optional<std::chrono::time_point<std::chrono::steady_clock>> animation_started_at;
-    key_event const start_animation
+    key_handler const start_animation
     {
         SDL_SCANCODE_SPACE,
-        [&](SDL_Keysym k){ animation_started_at = std::chrono::steady_clock::now(); }
+        [&](SDL_Keysym){ animation_started_at = std::chrono::steady_clock::now(); }
     };
 
     // Create quit event with outside boolean flag.
     bool should_close{false};
-    quit_event const quit{[&](){ should_close = true; }};
+    quit_handler const quit{[&](){ should_close = true; }};
 
     // Create point movement actions.
     auto mult = [](SDL_Keysym k) -> float
@@ -93,29 +93,29 @@ int main()
         return 10.f;
     };
     constexpr glm::vec2 x_axis{1.f, 0.f}, y_axis{0.f, 1.f};
-    key_event const move_left
+    key_handler const move_left
     {
         SDL_SCANCODE_LEFT,
         [&](SDL_Keysym k){ selected_point->increase_position(-x_axis * mult(k)); }
     };
-    key_event const move_right
+    key_handler const move_right
     {
         SDL_SCANCODE_RIGHT,
         [&](SDL_Keysym k){ selected_point->increase_position(x_axis * mult(k)); }
     };
-    key_event const move_down
+    key_handler const move_down
     {
         SDL_SCANCODE_DOWN,
         [&](SDL_Keysym k){ selected_point->increase_position(-y_axis * mult(k)); }
     };
-    key_event const move_up
+    key_handler const move_up
     {
         SDL_SCANCODE_UP,
         [&](SDL_Keysym k){ selected_point->increase_position(y_axis * mult(k)); }
     };
 
     // Put all actions into one place to iterate on.
-    std::vector<event const *> events{&quit, &cycle, &start_animation, &move_left, &move_right, &move_down, &move_up};
+    std::vector<handler const *> events{&quit, &cycle, &start_animation, &move_left, &move_right, &move_down, &move_up};
 
 
 
@@ -132,7 +132,7 @@ int main()
         while(SDL_PollEvent(&event) > 0)
         {
             for(auto const e : events)
-                if(e->handle(event) == event::consume_mode::stop)
+                if(e->handle(event) == handler::consume_mode::stop)
                     break;
         }
 
@@ -167,7 +167,7 @@ int main()
             else
             {
                 render_ctx.set_draw_color(glm::vec4{1.f, 0.f, 1.f, 0.f});
-                point p{lerp(points[first], points[second], std::fmod(t, 1))};
+                point p{lerp(points[first], points[second], static_cast<float>(std::fmod(t, 1)))};
                 p.set_is_selected(true);
                 p.render(render_ctx);
             }

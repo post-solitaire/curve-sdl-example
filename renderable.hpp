@@ -91,11 +91,11 @@ struct renderable_context
         static auto const indicies_buffer = []()
         {
             std::array<int, 3 * (max_sides - 2)> buffer{};
-            for(int triplet{0}; triplet < (max_sides - 2); ++triplet)
+            for(size_t triplet{0}; triplet < (max_sides - 2); ++triplet)
             {
                 buffer[3 * triplet] = 0;
-                buffer[3 * triplet + 1] = triplet + 1;
-                buffer[3 * triplet + 2] = triplet + 2;
+                buffer[3 * triplet + 1] = static_cast<int>(triplet + 1);
+                buffer[3 * triplet + 2] = static_cast<int>(triplet + 2);
             }
             return buffer;
         }();
@@ -110,7 +110,7 @@ struct renderable_context
         {
             float const angle{glm::two_pi<float>() * static_cast<float>(t) / static_cast<float>(detail)};
             glm::vec2 const pos{center + radius * glm::vec2{std::cos(angle), std::sin(angle)}};
-            vertices_buffer[t] = SDL_Vertex{.position{to_screen(SDL_FPoint{pos.x, pos.y})}, .color{color}, .tex_coord{0.f, 0.f}};
+            vertices_buffer[t] = SDL_Vertex{{to_screen(SDL_FPoint{pos.x, pos.y})}, {color}, {0.f, 0.f}};
         }
         if(SDL_RenderGeometry(renderer, nullptr, vertices_buffer, detail, indicies_buffer.data(), 3 * (detail - 2)) < 0)
             throw std::runtime_error{std::string{"Unable to draw polygons:\n"} + SDL_GetError()};

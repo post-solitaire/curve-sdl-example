@@ -12,8 +12,8 @@
 class point final : public renderable
 {
 public:
-    point(glm::vec2 position, bool is_selected = false)
-            : position{position}, is_selected{is_selected} {};
+    point(glm::vec2 pos, bool selected = false)
+            : position{pos}, is_selected{selected} {};
     ~point() = default;
 
     // Draw point, optionally draw selection.
